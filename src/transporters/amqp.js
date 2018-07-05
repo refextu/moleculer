@@ -105,29 +105,28 @@ class AmqpTransporter extends Transporter {
 					this.logger.info("AMQP is connected.");
 
 					/* istanbul ignore next*/
-					return connection
+					connection
 						.on("error", (err) => {
 							this.connected = false;
+							// reject(err);
 							this.logger.error("AMQP connection error.");
-							return reject(err);
 						})
 						.on("close", (err) => {
 							this.connected = false;
+							// reject(err);
 							if (!this.connectionDisconnecting)
 								this.logger.error("AMQP connection is closed.");
 							else
 								this.logger.info("AMQP connection is closed gracefully.");
-
-							return reject(err);
 						})
 						.on("blocked", (reason) => {
-							return this.logger.warn("AMQP connection is blocked.", reason);
+							this.logger.warn("AMQP connection is blocked.", reason);
 						})
 						.on("unblocked", () => {
-							return this.logger.info("AMQP connection is unblocked.");
+							this.logger.info("AMQP connection is unblocked.");
 						});
 
-					connection
+					return connection
 						.createChannel()
 						.then((channel) => {
 							this.channel = channel;
@@ -141,22 +140,22 @@ class AmqpTransporter extends Transporter {
 								.on("close", () => {
 									this.connected = false;
 									this.channel = null;
+									// reject();
 									if (!this.channelDisconnecting)
 										this.logger.warn("AMQP channel is closed.");
 									else
 										this.logger.info("AMQP channel is closed gracefully.");
-									return reject(new Error('closed'));
 								})
 								.on("error", (err) => {
 									this.connected = false;
+									// reject(err);
 									this.logger.error("AMQP channel error.", err);
-									return reject(err);
 								})
 								.on("drain", () => {
-									return this.logger.info("AMQP channel is drained.");
+									this.logger.info("AMQP channel is drained.");
 								})
 								.on("return", (msg) => {
-									return this.logger.warn("AMQP channel returned a message.", msg);
+									this.logger.warn("AMQP channel returned a message.", msg);
 								});
 						})
 						.catch((err) => {
@@ -170,7 +169,7 @@ class AmqpTransporter extends Transporter {
 					/* istanbul ignore next*/
 					this.logger.warn("AMQP failed to connect!");
 					this.connected = false;
-					return reject(err);
+					reject(err);
 				});
 		});
 	}
