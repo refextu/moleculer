@@ -99,31 +99,32 @@ class AmqpTransporter extends Transporter {
 				this.broker.fatal("The 'amqplib' package is missing. Please install it with 'npm install amqplib --save' command.", err, true);
 			}
 
-			amqp.connect(this.opts.url)
+			return amqp.connect(this.opts.url)
 				.then(connection => {
 					this.connection = connection;
 					this.logger.info("AMQP is connected.");
 
 					/* istanbul ignore next*/
-					connection
+					return connection
 						.on("error", (err) => {
 							this.connected = false;
-							reject(err);
 							this.logger.error("AMQP connection error.");
+							return reject(err);
 						})
 						.on("close", (err) => {
 							this.connected = false;
-							reject(err);
 							if (!this.connectionDisconnecting)
 								this.logger.error("AMQP connection is closed.");
 							else
 								this.logger.info("AMQP connection is closed gracefully.");
+
+							return reject(err);
 						})
 						.on("blocked", (reason) => {
-							this.logger.warn("AMQP connection is blocked.", reason);
+							return this.logger.warn("AMQP connection is blocked.", reason);
 						})
 						.on("unblocked", () => {
-							this.logger.info("AMQP connection is unblocked.");
+							return this.logger.info("AMQP connection is unblocked.");
 						});
 
 					connection
@@ -136,40 +137,40 @@ class AmqpTransporter extends Transporter {
 							channel.prefetch(this.opts.prefetch);
 
 							/* istanbul ignore next*/
-							channel
+							return channel
 								.on("close", () => {
 									this.connected = false;
 									this.channel = null;
-									reject();
 									if (!this.channelDisconnecting)
 										this.logger.warn("AMQP channel is closed.");
 									else
 										this.logger.info("AMQP channel is closed gracefully.");
+									return reject(new Error('closed'));
 								})
 								.on("error", (err) => {
 									this.connected = false;
-									reject(err);
 									this.logger.error("AMQP channel error.", err);
+									return reject(err);
 								})
 								.on("drain", () => {
-									this.logger.info("AMQP channel is drained.");
+									return this.logger.info("AMQP channel is drained.");
 								})
 								.on("return", (msg) => {
-									this.logger.warn("AMQP channel returned a message.", msg);
+									return this.logger.warn("AMQP channel returned a message.", msg);
 								});
 						})
 						.catch((err) => {
 							/* istanbul ignore next*/
 							this.logger.error("AMQP failed to create channel.");
 							this.connected = false;
-							reject(err);
+							return reject(err);
 						});
 				})
 				.catch((err) => {
 					/* istanbul ignore next*/
 					this.logger.warn("AMQP failed to connect!");
 					this.connected = false;
-					reject(err);
+					return reject(err);
 				});
 		});
 	}
